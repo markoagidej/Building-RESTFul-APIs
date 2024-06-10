@@ -1,3 +1,4 @@
+## 1. Managing a Fitness Center Database
 # Task 1: Setting Up the Flask Environment and Database Connection
 from flask import Flask, jsonify, request
 from flask_marshmallow import Marshmallow
@@ -89,8 +90,9 @@ def get_member(id):
         if conn is None:
             return jsonify({"error": "Database connection failed"}), 500        
         cursor = conn.cursor(dictionary = True)
-        query = "SELECT * FROM Members"
-        cursor.execute(query)
+        member_id = (id,)
+        query = "SELECT * FROM Members WHERE id = %s"
+        cursor.execute(query, member_id)
         customers = cursor.fetchall()
         return membersSchema.jsonify(customers)
     except Error as e:
@@ -251,8 +253,9 @@ def get_workout(id):
         if conn is None:
             return jsonify({"error": "Database connection failed"}), 500        
         cursor = conn.cursor(dictionary = True)
-        query = "SELECT * FROM workout_sessions"
-        cursor.execute(query)
+        member_id = (id,)
+        query = "SELECT * FROM workout_sessions WHERE member_id = %s"
+        cursor.execute(query, member_id)
         customers = cursor.fetchall()
         return workoutSessionsSchema.jsonify(customers)
     except Error as e:
@@ -261,4 +264,65 @@ def get_workout(id):
     finally:
         if conn and conn.is_connected():
             cursor.close()
-            conn.close()    
+            conn.close()
+
+## 2. Advanced Data Querying in a Fitness Center Database
+# Task 1: SQL DISTINCT Usage
+@app.route('/trainers/distinct', methods=['GET'])
+def list_distinct_trainers():
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500  
+        cursor = conn.cursor()
+        query = "SELECT DISTINCT trainer_id FROM members"
+        cursor.execute(query)
+        trainers = cursor.fetchall()
+        return jsonify(trainers)
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+# Task 2: SQL COUNT Functionality
+@app.route('/trainers/count_members', methods=['GET'])
+def count_members_per_trainer():
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500  
+        cursor = conn.cursor()
+        query = "SELECT trainer_id, COUNT(*) FROM members GROUP BY trainer_id"
+        cursor.execute(query)
+        trainers = cursor.fetchall()
+        return jsonify(trainers)
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+# Task 3: SQL BETWEEN Usage
+@app.route('/members/age_range', methods=['GET'])
+def get_members_in_age_range(start_age=25, end_age=30):
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500  
+        cursor = conn.cursor()
+        query = "SELECT name, age, trainer_id FROM member WHERE age BETWEEN 25 and 30;"
+        cursor.execute(query)
+        members = cursor.fetchall()
+        return jsonify(members)
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
