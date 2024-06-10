@@ -102,7 +102,7 @@ def get_member(id):
             conn.close()    
 
 @app.route('/members', methods=['PUT'])
-def add_member():
+def update_member():
     try:
         member_data = memberSchema.load(request.json)
     except ValidationError as e:
@@ -131,7 +131,7 @@ def add_member():
             conn.close()
 
 @app.route('/members/<int:id>', methods=['DELETE'])
-def get_member(id): 
+def delete_member(id): 
     try:
         conn = get_db_connection()
         if conn is None:
@@ -160,3 +160,105 @@ def get_member(id):
             conn.close()
 
 # Task 3: Managing Workout Sessions
+@app.route('/workout_sessions', methods=['POST'])
+def add_workout():
+    try:
+        workout_data = workoutSessionSchema.load(request.json)
+    except ValidationError as e:
+        print(f"Error: {e}")
+        return jsonify(e.messages), 400
+    
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500
+        cursor = conn.cursor()
+        new_workout = (workout_data['member_id'], workout_data['date'], workout_data['duration_minutes'], workout_data['calories_burned'])
+        query = "INSERT INTO workout_sessions (member_id, date, duration_minutes, calories_burned) VALUES (%s, %s, %s)"
+        cursor.execute(query, new_workout)
+        conn.commit()
+        return jsonify({"message": "New workout added sucesfully"}), 201
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+@app.route('/workouts', methods=['PUT'])
+def update_workout():
+    try:
+        workout_data = workoutSessionSchema.load(request.json)
+    except ValidationError as e:
+        print(f"Error: {e}")
+        return jsonify(e.messages), 400
+    
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500
+        cursor = conn.cursor()
+
+        updated_workout = (workout_data['member_id'], workout_data['date'], workout_data['duration_minutes'], workout_data['calories_burned'], id)
+        query = "UPDATE workout_sessions SET name = %s, age = %s, trainer_id = %s WHERE id = %s"
+        cursor.execute(query, updated_workout)
+        conn.commit()
+
+        return jsonify({"message": "Workout updated sucesfully"}), 201
+    
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+@app.route('/workouts/<int:id>', methods=['DELETE'])
+def delete_workout(id): 
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500
+        cursor = conn.cursor()
+
+        workout_to_remove = (id,)
+
+        cursor.execute("SELECT * FROM workout_sessions WHERE id = %s", workout_to_remove)
+        workout = cursor.fetchone()
+        if not workout:
+            return jsonify({"error": "Workout not found"}), 404
+
+        query = "DELETE FROM workout_sessions WHERE id = %s"
+        cursor.execute(query, workout_to_remove)
+        conn.commit()
+
+        return jsonify({"message": "Workout deleted sucesfully"}), 200
+    
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+@app.route('/workouts/<int:id>', methods=['GET'])
+def get_workout(id):
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500        
+        cursor = conn.cursor(dictionary = True)
+        query = "SELECT * FROM workout_sessions"
+        cursor.execute(query)
+        customers = cursor.fetchall()
+        return workoutSessionsSchema.jsonify(customers)
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()    
